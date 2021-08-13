@@ -1,6 +1,11 @@
 import { useHistory } from "react-router-dom";
 
-import { useAuth } from "hook/useAuth";
+import { useForm } from "react-hook-form";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+
+import { database } from "services/firebase";
+import { useStores } from "stores";
 import illustrationImg from "../assets/images/illustration.svg";
 import logoImage from "../assets/images/logo.svg";
 import googleIconImage from "../assets/images/google-icon.svg";
@@ -8,9 +13,25 @@ import googleIconImage from "../assets/images/google-icon.svg";
 import "../styles/auth.scss";
 import { Button } from "../components/Button";
 
+interface IHomeForm {
+  roomCode: string;
+}
+
+const schema = yup.object({
+  roomCode: yup.string().required("O código da sala precisa ser informado!"),
+});
+
 export function Home() {
   const history = useHistory();
-  const { signInWithGoogle, user } = useAuth();
+  const {
+    authStore: { signInWithGoogle, user },
+  } = useStores();
+  const {
+    handleSubmit,
+    register,
+    formState: { errors },
+    setError,
+  } = useForm<IHomeForm>({ resolver: yupResolver(schema) });
 
   async function handleCreateRoom() {
     if (!user) {
@@ -19,6 +40,16 @@ export function Home() {
 
     history.push("/rooms/new");
   }
+
+  const handleJoinRoom = async ({ roomCode }: IHomeForm) => {
+    const roomRef = await database.ref(`rooms/${roomCode}`).get();
+
+    if (!roomRef.exists()) {
+      setError("roomCode", { type: "validate", message: "Sala não existe!" });
+    }
+
+    history.push(`rooms/${roomCode}`);
+  };
 
   return (
     <div className="flex items-stretch  h-screen">
@@ -30,7 +61,7 @@ export function Home() {
       <main className="flex-1 px-8 flex items-center justify-center">
         <div className="flex-col w-full max-w-xs items-stretch text-center">
           <img src={logoImage} alt="Letmeask" className="self-center" />
-          <form>
+          <form onSubmit={handleSubmit(handleJoinRoom)}>
             <button
               type="button"
               onClick={handleCreateRoom}
@@ -41,11 +72,15 @@ export function Home() {
             </button>
             <div className="text-sm text-gray-400 my-8 items-center separator">ou entre em uma sala</div>
             <input
+              {...register("roomCode")}
               className="h-11 w-full rounded-lg px-4 bg-white border-gray-500 border"
               placeholder="Digite o código da sala"
               type="text"
             />
-            <Button type="submit">Entrar na sala</Button>
+            {errors.roomCode && <span className="text-red-600 mt-1 block">{errors.roomCode.message}</span>}
+            <Button type="submit" className="mt-4 w-full">
+              Entrar na sala
+            </Button>
           </form>
         </div>
       </main>

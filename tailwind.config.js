@@ -8,6 +8,9 @@ module.exports = {
         poppin: ['"Poppins"'],
       },
     },
+    boxShadow: {
+      default: "0 2px 12px rgba(0, 0, 0, 0.4)",
+    },
   },
   variants: {
     backgroundColor: ({ after }) => after(["disabled"]),
